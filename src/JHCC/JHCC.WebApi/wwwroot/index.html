@@ -1,0 +1,114 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Jack Henry Coding Challenge - May 2022 - Andy Clark's Submission</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/wordcloud.js"></script>
+</head>
+<body onload="startSampleStream(5000)">
+
+    <div id="container"></div>
+
+    <p id="tweets"></p>
+
+    <p id="counter"></p>
+
+    <input type="button" onclick="getHashtags()" value="Get Hashtags" />
+
+    <!-- modified from this example: https://jsfiddle.net/BlackLabel/3mnjx79w/ -->
+    <script type="text/javascript">
+
+        const uri1 = 'api/hashtags/gethashtags';
+        const uri2 = 'api/hashtags/startsamplestream/';
+        const uri3 = 'api/hashtags/gettweetscounter';
+
+        let hashtags = [];
+
+        function startSampleStream(max) {
+            fetch(uri2 + max, { method: 'POST' })
+                .catch(error => console.error('Unable to start sample stream.', error));
+
+            const interval = setInterval(function () {
+                getHashtags();
+                getTweets();
+            }, 5000);
+        }
+
+        function getHashtags() {
+            fetch(uri1)
+                .then(response => response.json())
+                .then(data => _displayHashtags(data))
+                .catch(error => console.error('Unable to get hashtags.', error));
+        }
+
+        function getTweets() {
+            fetch(uri3)
+                .then(response => response.text())
+                .then(data => _displayTweetsCount(data))
+                .catch(error => console.error('Unable to get tweets count.', error));
+        }
+
+        function _displayTweetsCount(tweetsCounter) {
+            document.getElementById('tweets').innerText = `${tweetsCounter} tweets counted...`;
+        }
+
+        function _displayCount(hashtagsCount) {
+            document.getElementById('counter').innerText = `${hashtagsCount} hashtags processed...`;
+        }
+
+        function _displayHashtags(data) {
+            _displayCount(data.hashtags.length);
+
+            if (data.hashtags.length > 40) {
+                hashtags = data.hashtags.slice(0, 40);
+
+                var tags = [];
+
+                hashtags.forEach(item => {
+                    //console.log(item);
+                    for (let i = 0; i < item.count; i++) {
+                        tags.push(item.tag);
+                    }
+                });
+
+                var text = tags.join(' ');
+                var lines = text.split(/[,\. ]+/g),
+                    data = Highcharts.reduce(lines, function (arr, word) {
+                        var obj = Highcharts.find(arr, function (obj) {
+                            return obj.name === word;
+                        });
+                        if (obj) {
+                            obj.weight += 1;
+                        } else {
+                            obj = {
+                                name: word,
+                                weight: 1
+                            };
+                            arr.push(obj);
+                        }
+                        return arr;
+                    }, []);
+
+                Highcharts.chart('container', {
+                    title: {
+                        text: 'Jack Henry Coding Challenge - May 2022 - Andy Clark\'s Submission'
+                    },
+                    subtitle: {
+                        text: 'Wordcloud generated from the top hashtags currently provided via the Twitter API v2 sample stream'
+                    },
+                    series: [{
+                        type: 'wordcloud',
+                        data: data,
+                    }],
+                    plotOptions: {
+                        series: {
+                            colorByPoint: true
+                        }
+                    },
+                });
+            }
+        }
+    </script>
+</body>
+</html>
